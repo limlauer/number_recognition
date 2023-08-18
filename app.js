@@ -3,7 +3,7 @@ const ctx = canvas.getContext("2d");
 
 let model;
 
-tf.loadLayersModel("./model.keras").then(loadedModel => {
+tf.loadLayersModel("./model.json").then(loadedModel => {
     model = loadedModel;
     console.log("Modelo cargado exitosamente.");
 });
