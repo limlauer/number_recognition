@@ -9,6 +9,10 @@ function draw(event) {
     drawing.push(event.x, event.y);
     ctx.fillStyle = "black";
     ctx.fillRect(event.x, event.y, 1, 1);
+	
+	ctx.strokeStyle = "black";
+	ctx.lineWidth = 1;
+	ctx.strokeRect(0, 0, canvas.width, canvas.height);
 }
 
 canvas.addEventListener("mousedown", draw);
