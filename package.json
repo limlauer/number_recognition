@@ -1,0 +1,8 @@
+{
+  "name": "my-flask-app",
+  "version": "1.0.0",
+  "dependencies": {
+    "flask": "^2.0.2",
+    "tensorflow": "^2.8.0"
+  }
+}
