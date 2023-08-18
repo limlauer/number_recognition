@@ -1,49 +1,89 @@
-var canvas = document.getElementById("drawing-canvas");
-var ctx = canvas.getContext("2d");
+const canvas = document.getElementById("drawing-canvas");
+const ctx = canvas.getContext("2d");
 
-var model;
+let model;
 
-// Carga el modelo asincrónicamente
-tf.loadLayersModel("model.h5").then(loadedModel => {
+tf.loadLayersModel("./model.keras").then(loadedModel => {
     model = loadedModel;
     console.log("Modelo cargado exitosamente.");
 });
 
-var drawing = [];
+let drawing = false;
 
-function draw(event) {
-    var x = event.clientX - canvas.getBoundingClientRect().left;
-    var y = event.clientY - canvas.getBoundingClientRect().top;
-    drawing.push(x, y);
-    ctx.fillStyle = "black";
-    ctx.fillRect(x, y, 1, 1);
-	
-	ctx.strokeStyle = "black";
-	ctx.lineWidth = 1;
-	ctx.strokeRect(0, 0, canvas.width, canvas.height);
+function setup() {
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", endDrawing);
+    canvas.addEventListener("mouseleave", endDrawing);
 }
 
-canvas.addEventListener("mousedown", draw);
+function startDrawing(event) {
+    drawing = true;
+    const x = event.clientX - canvas.getBoundingClientRect().left;
+    const y = event.clientY - canvas.getBoundingClientRect().top;
+    drawing = true;
+    ctx.fillStyle = "black";
+    ctx.fillRect(x, y, 10, 10);
+    canvas.addEventListener("mousemove", draw);
+}
+
+function draw(event) {
+    if (!drawing) return;
+    const x = event.clientX - canvas.getBoundingClientRect().left;
+    const y = event.clientY - canvas.getBoundingClientRect().top;
+    ctx.fillStyle = "black";
+    ctx.fillRect(x, y, 10, 10);
+}
+
+function endDrawing() {
+    drawing = false;
+    canvas.removeEventListener("mousemove", draw);
+}
 
 function recognize() {
-    var image = tf.tensor(drawing);
-    image = image.expandDims(0); // Añadir dimensión de lote
-    // Aquí redimensionar y normalizar la imagen según las necesidades del modelo
-    var prediction = model.predict(image);
-    document.getElementById("prediction").innerHTML = prediction.arraySync()[0]; // Convertir tensor a array
+    if (!model) {
+        console.log("El modelo no se ha cargado correctamente.");
+        return;
+    }
+
+    const imageData = getImageDataFromCanvas();
+    const tensor = preprocessImage(imageData);
+    const prediction = model.predict(tensor);
+    const predictionArray = prediction.dataSync();
+    const recognizedNumber = predictionArray.indexOf(Math.max(...predictionArray));
+    
+    document.getElementById("prediction").textContent = `Número reconocido: ${recognizedNumber}`;
+    
+    // Comprobar si el reconocimiento es correcto
+    const correctNumber = 7; // Número correcto esperado
+    const feedbackElement = document.getElementById("feedback");
+    if (recognizedNumber === correctNumber) {
+        feedbackElement.textContent = "¡Correcto!";
+    } else {
+        feedbackElement.textContent = "Incorrecto. Inténtalo de nuevo.";
+    }
+}
+
+function getImageDataFromCanvas() {
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function preprocessImage(imageData) {
+    const tensor = tf.browser.fromPixels(imageData);
+    const resized = tf.image.resizeBilinear(tensor, [28, 28]);
+    const grayScale = resized.mean(2);
+    const inverted = grayScale.sub(255).mul(-1);
+    const normalized = inverted.div(255);
+    const reshaped = normalized.reshape([1, 28, 28, 1]);
+    return reshaped;
 }
 
 document.getElementById("erase-button").addEventListener("click", function() {
-    drawing = [];
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById("prediction").textContent = "";
+    document.getElementById("feedback").textContent = "";
 });
 
 document.getElementById("recognize-button").addEventListener("click", recognize);
 
-document.getElementById("correct-button").addEventListener("click", function() {
-    document.getElementById("prediction").innerHTML = "Correcto";
-});
-
-document.getElementById("incorrect-button").addEventListener("click", function() {
-    document.getElementById("prediction").innerHTML = "Incorrecto";
-});
+setup();
