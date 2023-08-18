@@ -1,14 +1,22 @@
-var canvas = document.getElementById("drawing-board");
+var canvas = document.getElementById("drawing-canvas");
 var ctx = canvas.getContext("2d");
 
-var model = tf.loadModel("model.h5");
+var model;
+
+// Carga el modelo asincrónicamente
+tf.loadLayersModel("model.h5").then(loadedModel => {
+    model = loadedModel;
+    console.log("Modelo cargado exitosamente.");
+});
 
 var drawing = [];
 
 function draw(event) {
-    drawing.push(event.x, event.y);
+    var x = event.clientX - canvas.getBoundingClientRect().left;
+    var y = event.clientY - canvas.getBoundingClientRect().top;
+    drawing.push(x, y);
     ctx.fillStyle = "black";
-    ctx.fillRect(event.x, event.y, 1, 1);
+    ctx.fillRect(x, y, 1, 1);
 	
 	ctx.strokeStyle = "black";
 	ctx.lineWidth = 1;
@@ -18,10 +26,11 @@ function draw(event) {
 canvas.addEventListener("mousedown", draw);
 
 function recognize() {
-    var image = tf.image.arrayToTensor(drawing);
-    image = tf.expandDims(image, 0);
+    var image = tf.tensor(drawing);
+    image = image.expandDims(0); // Añadir dimensión de lote
+    // Aquí redimensionar y normalizar la imagen según las necesidades del modelo
     var prediction = model.predict(image);
-    document.getElementById("prediction").innerHTML = prediction[0];
+    document.getElementById("prediction").innerHTML = prediction.arraySync()[0]; // Convertir tensor a array
 }
 
 document.getElementById("erase-button").addEventListener("click", function() {
@@ -32,9 +41,9 @@ document.getElementById("erase-button").addEventListener("click", function() {
 document.getElementById("recognize-button").addEventListener("click", recognize);
 
 document.getElementById("correct-button").addEventListener("click", function() {
-    document.getElementById("prediction").innerHTML = "Correct";
+    document.getElementById("prediction").innerHTML = "Correcto";
 });
 
 document.getElementById("incorrect-button").addEventListener("click", function() {
-    document.getElementById("prediction").innerHTML = "Incorrect";
+    document.getElementById("prediction").innerHTML = "Incorrecto";
 });
