@@ -10,10 +10,18 @@ tf.loadLayersModel("./modelo.h5").then(loadedModel => {
 
 let drawing = false;
 
+function setup() {
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", endDrawing);
+    canvas.addEventListener("mouseleave", endDrawing);
+}
+
 function startDrawing(event) {
     drawing = true;
     const x = event.clientX - canvas.getBoundingClientRect().left;
     const y = event.clientY - canvas.getBoundingClientRect().top;
+    drawing = true;
     ctx.fillStyle = "black";
     ctx.fillRect(x, y, 10, 10);
     canvas.addEventListener("mousemove", draw);
@@ -38,7 +46,7 @@ function recognize() {
         return;
     }
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const imageData = getImageDataFromCanvas();
     const tensor = preprocessImage(imageData);
     const prediction = model.predict(tensor);
     const predictionArray = prediction.dataSync();
@@ -56,11 +64,17 @@ function recognize() {
     }
 }
 
+function getImageDataFromCanvas() {
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
 function preprocessImage(imageData) {
-    const tensor = tf.browser.fromPixels(imageData).toFloat();
+    const tensor = tf.browser.fromPixels(imageData);
     const resized = tf.image.resizeBilinear(tensor, [28, 28]);
-    const grayScale = resized.mean(2).div(255);
-    const reshaped = grayScale.reshape([1, 28, 28, 1]);
+    const grayScale = resized.mean(2);
+    const inverted = grayScale.sub(255).mul(-1);
+    const normalized = inverted.div(255);
+    const reshaped = normalized.reshape([1, 28, 28, 1]);
     return reshaped;
 }
 
@@ -71,3 +85,5 @@ document.getElementById("erase-button").addEventListener("click", function() {
 });
 
 document.getElementById("recognize-button").addEventListener("click", recognize);
+
+setup();
