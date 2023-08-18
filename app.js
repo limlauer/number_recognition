@@ -6,6 +6,9 @@ let model;
 tf.loadLayersModel("./modelo.h5").then(loadedModel => {
     model = loadedModel;
     console.log("Modelo cargado exitosamente.");
+
+    // Now that the model is loaded, setup the canvas and event listeners
+    setup();
 });
 
 let drawing = false;
@@ -85,5 +88,3 @@ document.getElementById("erase-button").addEventListener("click", function() {
 });
 
 document.getElementById("recognize-button").addEventListener("click", recognize);
-
-setup();
